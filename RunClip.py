@@ -19,7 +19,7 @@ aesthetic_prompts = [
 ]
 
 #load the image and prepare it for the model
-testImagePath = "view.jpg"
+testImagePath = "images/view.jpg"
 image = preprocess(Image.open(testImagePath)).unsqueeze(0).to(device)
 
 #convert the labels and prepare it for the model
