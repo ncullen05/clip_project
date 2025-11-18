@@ -22,6 +22,10 @@ aesthetic_prompts = [
 testImagePath = "images/view.jpg"
 image = preprocess(Image.open(testImagePath)).unsqueeze(0).to(device)
 
+#List available CLIP models
+clip_models = clip.available_models()
+print("Available CLIP models:", clip_models)
+
 #convert the labels and prepare it for the model
 text = clip.tokenize(aesthetic_prompts).to(device)
 
