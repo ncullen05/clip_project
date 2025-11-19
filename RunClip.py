@@ -9,8 +9,8 @@ model, preprocess = clip.load("ViT-B/16", device=device)
 #These are the aesthetic prompts to classify the image
 #They will be transferred into an external file to improve flexibility & scalability
 aesthetic_prompts = [
-    "This photo is aesthetically pleasing.", 
-    "The lighting is too dark.",
+    "This is a handsome man", 
+    "This is an ugly man",
     "The lighting is overexposed.",
     "The background is distracting.",
     "The image is blurry.",
@@ -19,7 +19,7 @@ aesthetic_prompts = [
 ]
 
 #load the image and prepare it for the model
-testImagePath = "images/view.jpg"
+testImagePath = "images/IMG_6371.jpg"
 image = preprocess(Image.open(testImagePath)).unsqueeze(0).to(device)
 
 #List available CLIP models
@@ -35,7 +35,7 @@ with torch.no_grad():
 
 print("Raw CLIP Scores:", raw_scores)  
 sorted_indices = np.argsort(raw_scores)
-lowest_number = 3
+lowest_number = 7
 lowest_indices = sorted_indices[:lowest_number]
 print("Your lowest scores were in the following categories:")
 for idx in lowest_indices:
