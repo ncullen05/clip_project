@@ -4,13 +4,14 @@ from PIL import Image
 import numpy as np
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
-model, preprocess = clip.load("ViT-B/16", device=device)
+model, preprocess = clip.load("ViT-B/32", device=device)
 
 #These are the aesthetic prompts to classify the image
 #They will be transferred into an external file to improve flexibility & scalability
 aesthetic_prompts = [
     "This is a handsome man", 
     "This is an ugly man",
+    "This is very personable man"
     "The lighting is overexposed.",
     "The background is distracting.",
     "The image is blurry.",
