@@ -1,4 +1,3 @@
-import json
 import torch
 import clip
 from PIL import Image
@@ -61,13 +60,3 @@ for feature_key in positive_prompts:
 
     feature_scores = avg_p_score - avg_n_score
     print(f"Feature score (positive - negative): {feature_scores:.4f}")
-
-'''
-print("Raw CLIP Scores:", raw_scores)  
-sorted_indices = np.argsort(raw_scores)
-lowest_number = 3
-lowest_indices = sorted_indices[:lowest_number]
-print("Your lowest scores were in the following categories:")
-for idx in lowest_indices:
-    print(f"{all_prompts['background'][idx]}: {raw_scores[idx]}")
-'''
