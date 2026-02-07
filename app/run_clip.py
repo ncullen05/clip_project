@@ -37,20 +37,20 @@ image = preprocess(Image.open(testImagePath)).unsqueeze(0).to(device)
 token_cache = {}
 for feature_key in positive_prompts:
     token_cache[feature_key] = {
-        "pos": clip.tokenize(positive_prompts[feature_key]),
-        "neg": clip.tokenize(negative_prompts[feature_key])
+        "pos": clip.tokenize(positive_prompts[feature_key]).to(device),
+        "neg": clip.tokenize(negative_prompts[feature_key]).to(device)
     }
 
 results = {}
 with torch.no_grad():
- # Encode the image once
+    # Encode the image once
     image_feat = model.encode_image(image)
     # Scale each embedding so its length is 1, making comparisons fair
     image_feat = image_feat / image_feat.norm(dim=-1, keepdim=True) 
 
     for feature_key in positive_prompts:
-        p_tokens = token_cache[feature_key]["pos"].to(device)
-        n_tokens = token_cache[feature_key]["neg"].to(device)
+        p_tokens = token_cache[feature_key]["pos"]
+        n_tokens = token_cache[feature_key]["neg"]
 
         # Encode text once per set of prompts
         p_text_feat = model.encode_text(p_tokens)
@@ -63,17 +63,16 @@ with torch.no_grad():
         p_scores = (image_feat @ p_text_feat.T).squeeze(0).detach().cpu().numpy()
         n_scores = (image_feat @ n_text_feat.T).squeeze(0).detach().cpu().numpy()
 
-        average_p_score = np.mean(p_scores)
-        average_p_score = float(average_p_score)  # Convert to a standard Python float
-        average_n_score = np.mean(n_scores)
-        average_n_score = float(average_n_score)  # Convert to a standard Python float
+        average_p_score = float(np.mean(p_scores))
+        average_n_score = float(np.mean(n_scores))
 
         delta = average_p_score - average_n_score
 
-        # Get the top 3 positive and negative scores alongside their corresponding prompts
+        # Get the top 3 positive and negative scores
         top_3_p_indices = np.argsort(p_scores)[-3:][::-1]
         top_3_n_indices = np.argsort(n_scores)[-3:][::-1]
         
+        # Get the corresponding prompts for the top 3 scores
         top_3_positive = [
             {
                 "score": float(p_scores[idx]),
@@ -81,7 +80,7 @@ with torch.no_grad():
             }
             for idx in top_3_p_indices
         ]
-        
+        # Get the corresponding prompts for the top 3 negative scores
         top_3_negative = [
             {
                 "score": float(n_scores[idx]),
@@ -101,17 +100,3 @@ with torch.no_grad():
         }
 
 print(results)    
-
-'''
-print(feature_key)
-print("positive:", p_scores)
-print("negative:", n_scores)
-
-avg_p_score = np.mean(p_scores)
-avg_n_score = np.mean(n_scores)
-print(f"Average positive score: {avg_p_score:.4f}")
-print(f"Average negative score: {avg_n_score:.4f}")
-
-feature_scores = avg_p_score - avg_n_score
-print(f"Feature score (positive - negative): {feature_scores:.4f}")
-'''
