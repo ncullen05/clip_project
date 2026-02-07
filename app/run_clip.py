@@ -1,5 +1,5 @@
 import torch
-from clip import clip
+import clip
 from PIL import Image
 import numpy as np
 
@@ -11,6 +11,7 @@ from app.prompts import visual_complexity as vc
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
+model.eval() # Guarantees consistent behaviour. Prevents subtle bugs
 
 positive_prompts = {
     "lighting/exposure": le.p_light_expo,
@@ -28,26 +29,38 @@ negative_prompts = {
     "visual complexity": vc.n_v_complexity,
 }
 
-#load the image and prepare it for the model
+# Load the image and prepare it for the model
 testImagePath = "images/alfie.jpg"
 image = preprocess(Image.open(testImagePath)).unsqueeze(0).to(device)
 
-#convert the labels and prepare it for the model
+# Convert the labels and prepare it for the model
+token_cache = {}
 for feature_key in positive_prompts:
-    pos_list = positive_prompts[feature_key]
-    neg_list = negative_prompts[feature_key]
-    
-    p_text = clip.tokenize(pos_list).to(device)
-    n_text = clip.tokenize(neg_list).to(device)
+    token_cache[feature_key] = {
+        "pos": clip.tokenize(positive_prompts[feature_key]),
+        "neg": clip.tokenize(negative_prompts[feature_key])
+    }
 
-    with torch.no_grad():
-        # positive prompts
-        p_logits_img, _ = model(image, p_text)
-        p_scores = p_logits_img[0].cpu().numpy()
+with torch.no_grad():
+ # Encode the image once
+    image_feat = model.encode_image(image)
+    # Scale each embedding so its length is 1, making comparisons fair
+    image_feat = image_feat / image_feat.norm(dim=-1, keepdim=True) 
 
-        # negative prompts
-        n_logits_img, _ = model(image, n_text)
-        n_scores = n_logits_img[0].cpu().numpy()
+    for feature_key in positive_prompts:
+        p_tokens = token_cache[feature_key]["pos"].to(device)
+        n_tokens = token_cache[feature_key]["neg"].to(device)
+
+        # Encode text once per set of prompts
+        p_text_feat = model.encode_text(p_tokens)
+        n_text_feat = model.encode_text(n_tokens)
+
+        p_text_feat = p_text_feat / p_text_feat.norm(dim=-1, keepdim=True)
+        n_text_feat = n_text_feat / n_text_feat.norm(dim=-1, keepdim=True)
+
+        # Measure how similar the image is to each prompt using cosine similarity
+        p_scores = (image_feat @ p_text_feat.T).squeeze(0).detach().cpu().numpy()
+        n_scores = (image_feat @ n_text_feat.T).squeeze(0).detach().cpu().numpy()
 
     print(feature_key)
     print("positive:", p_scores)
