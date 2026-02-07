@@ -1,13 +1,13 @@
 import torch
-import clip
+from clip import clip
 from PIL import Image
 import numpy as np
 
-import lighting_exposure_analysis as le
-import contrast_analysis as c
-import framing_perspective_analysis as fp
-import visual_focus_analysis as vf
-import visual_complexity_analysis as vc
+from app.prompts import lighting_exposure as le
+from app.prompts import contrast as c
+from app.prompts import framing_perspective as fp
+from app.prompts import visual_focus as vf
+from app.prompts import visual_complexity as vc
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model, preprocess = clip.load("ViT-B/32", device=device)
