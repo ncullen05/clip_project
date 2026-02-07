@@ -62,14 +62,14 @@ with torch.no_grad():
         p_scores = (image_feat @ p_text_feat.T).squeeze(0).detach().cpu().numpy()
         n_scores = (image_feat @ n_text_feat.T).squeeze(0).detach().cpu().numpy()
 
-    print(feature_key)
-    print("positive:", p_scores)
-    print("negative:", n_scores)
+        print(feature_key)
+        print("positive:", p_scores)
+        print("negative:", n_scores)
 
-    avg_p_score = np.mean(p_scores)
-    avg_n_score = np.mean(n_scores)
-    print(f"Average positive score: {avg_p_score:.4f}")
-    print(f"Average negative score: {avg_n_score:.4f}")
+        avg_p_score = np.mean(p_scores)
+        avg_n_score = np.mean(n_scores)
+        print(f"Average positive score: {avg_p_score:.4f}")
+        print(f"Average negative score: {avg_n_score:.4f}")
 
-    feature_scores = avg_p_score - avg_n_score
-    print(f"Feature score (positive - negative): {feature_scores:.4f}")
+        feature_scores = avg_p_score - avg_n_score
+        print(f"Feature score (positive - negative): {feature_scores:.4f}")
