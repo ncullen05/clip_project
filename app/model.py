@@ -1,15 +1,14 @@
 # app/model.py
 """
-CLIP Model wrapper for encoding images into normalized feature vectors.
+CLIP model wrapper for image embedding (Hides the complexity of loading and encoding images with CLIP).
 
-This module provides a simple interface to the OpenAI CLIP model for extracting
-image embeddings. 
-It handles multiple input formats (file paths, bytes, PIL Images) for now until 
-testing is complete. In production, images will be received as bytes over HTTP.
-It manages device placement (CPU/GPU) automatically because CLIP is computationally
-intensive and benefits greatly from GPU acceleration, but we want the code to run on
-systems without a GPU as well. By default, it will use GPU if available, otherwise
-it will fall back to CPU.
+Provides a simple interface to load CLIP and encode images into normalized
+feature vectors (a fixed-length list of numbers). 
+
+Supports file paths, bytes, and PIL Images during development.
+In production, images will be received as bytes via HTTP.
+
+Automatically selects GPU if available, otherwise falls back to CPU.
 """
 
 import io
@@ -18,12 +17,7 @@ import clip
 from PIL import Image
 
 class CLIPModel:
-    """
-    Wrapper around OpenAI's CLIP model for image encoding.
-    
-    This class provides a method to convert an image into a vector representation
-    which is essential for scoring aesthetics based on text prompts.
-    """
+
     def __init__(self, model_name: str = "ViT-B/32", device: str | None = None):
         """
         Initialize the CLIP model and preprocessing pipeline.
@@ -44,6 +38,8 @@ class CLIPModel:
     def _to_pil(self, image_input) -> Image.Image:
         """
         Convert various image input formats to PIL Image in RGB format.
+            - CLIP requires images to be in RGB format
+            - PIL ensures raw image data is model ready
         
         Currently supports three input types for testing purposes. In production,
         images will be received as bytes over HTTP. This method ensures all inputs
@@ -83,16 +79,16 @@ class CLIPModel:
         Converts the input image to a normalized embedding vector using the CLIP
         image encoder. The resulting vector is normalized to unit length (L2 norm = 1),
         making it suitable for cosine similarity comparisons with text embeddings.
+            - This ensures a fair comparison of content, not scale.
         
         Args:
             image_input: Image in any of the formats supported by _to_pil().
         
         Returns:
-            torch.Tensor: A normalized feature vector of shape (1, 512) or (1, 768)
-                         depending on the model variant but in this case (1, 512) for ViT-B/32. 
+            torch.Tensor: A normalized feature vector of shape (1, 512) for ViT-B/32. 
                          Values are in range [-1, 1] and have L2 norm = 1. 
         """
-        # Convert input to PIL Image in RGB format
+        # Convert input to PIL Image in RGB format using the helper method
         pil = self._to_pil(image_input)
         # Apply CLIP preprocessing (resize, normalize) and add batch dimension
         image_tensor = self.preprocess(pil).unsqueeze(0).to(self.device)

@@ -11,16 +11,6 @@ from app.scorer import ClipAestheticsScorer
 from app.prompt_registry import get_prompt_sets
 
 def main():
-    """
-    Main function demonstrating image aesthetic scoring workflow.
-    
-    Steps:
-    1. Load positive and negative aesthetic evaluation prompts
-    2. Initialize CLIP model for encoding images and text
-    3. Create scorer with prompt sets (builds token and feature caches)
-    4. Score a sample image across all aesthetic dimensions
-    5. Print results showing aesthetic evaluation scores
-    """
     # Load aesthetic evaluation prompts from the prompt registry
     pos, neg = get_prompt_sets()
 
