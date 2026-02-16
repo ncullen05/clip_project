@@ -1,33 +1,18 @@
 # app/scorer.py
-"""
-CLIP-based Aesthetics Scorer for evaluating image quality across multiple dimensions.
-
-This module provides a scoring system that uses CLIP's vision-language alignment to
-evaluate images across five aesthetic dimensions: lighting/exposure, contrast,
-framing/perspective, visual focus, and visual complexity. Each dimension uses
-positive and negative prompt sets to measure how well an image aligns with good
-aesthetic practices.
-"""
-
 import torch
 import clip
 import numpy as np
 
 class ClipAestheticsScorer:
-    """
-    Scores images across multiple aesthetic dimensions using CLIP embeddings.
-    
-    Uses pre-computed text embeddings (caches) for positive and negative prompts
-    to evaluate images efficiently. For each dimension, computes similarity scores
-    between the image and both positive/negative prompts, then ranks the top matches.
-    """
+
     def __init__(self, clip_model, positive_prompts: dict, negative_prompts: dict, top_k: int = 3):
         """
         Initialize the aesthetics scorer with CLIP model and prompt sets.
         
-        Builds persistent caches for tokenized prompts and their encoded features
+        Builds persistent caches (stored data) for tokenized prompts (text prompts 
+        converted into numerical form the model can understand) and their encoded features
         during initialization. This one-time setup cost is amortized over many
-        scoring calls, making subsequent image evaluations very fast.
+        scoring calls, making subsequent image evaluations faster.
         
         Args:
             clip_model: CLIPModel instance for encoding images and text.
@@ -39,8 +24,8 @@ class ClipAestheticsScorer:
         """
         # Store references to the CLIP model and its components
         self.clip_model = clip_model
-        self.model = clip_model.model
-        self.device = clip_model.device
+        self.model = clip_model.model 
+        self.device = clip_model.device 
 
         # Store the prompt dictionaries
         self.positive_prompts = positive_prompts
@@ -48,15 +33,14 @@ class ClipAestheticsScorer:
         # Number of top-scoring prompts to return in results
         self.top_k = top_k
 
-        # Build and store persistent caches to avoid recomputing on every image score
-        # Token cache: pre-tokenized prompts ready for encoding
-        self._token_cache = self._build_token_cache()
-        # Feature cache: pre-encoded and normalized text embeddings
-        self._text_feat_cache = self._build_text_feature_cache()
+        # Token cache: stores the tokenized versions of all prompt strings
+        self._token_cache = self._prepare_prompt_tokens()
+        # Feature cache: storing the model’s internal representation of images and text as vectors.
+        self._text_feat_cache = self._encode_prompt_features()
 
-    def _build_token_cache(self) -> dict:
+    def _prepare_prompt_tokens(self) -> dict:
         """
-        Pre-tokenize all prompts and cache them for reuse.
+        Pre-tokenize (convert text prompts to numerical forms - tokens) and cache prompts for reuse.
         
         Tokenization converts text prompts to token sequences that CLIP understands.
         Since tokenization can be computationally expensive and we use the same
@@ -78,30 +62,27 @@ class ClipAestheticsScorer:
             }
         return cache
 
-    @torch.no_grad()
-    def _build_text_feature_cache(self) -> dict:
+    @torch.no_grad() # Lets the model know we are not training
+    def _encode_prompt_features(self) -> dict:
         """
-        Encode all tokenized prompts into normalized text embeddings.
-        
-        Uses the CLIP text encoder to convert pre-tokenized prompts into feature
-        vectors. Features are normalized to unit length (L2 norm = 1) to enable
-        efficient cosine similarity computation during scoring.
+        The helper method, _prepare_prompt_tokens, returns the tokenized prompts.
+        This method builds on that by feeding the tokenized prompts through the CLIP text encoder to get their feature vectors.
+        These vectors are then rescaled to a have a length of 1.
+        The processed results are then stored in a cache.
         
         Returns:
             dict: Nested dictionary mapping aesthetic dimension -> {"pos": features, "neg": features}.
-                 Features have shape (num_prompts, 512/768) and L2 norm = 1.
         """
-        cache = {}
-        # Encode text for each aesthetic dimension
-        for feature_key, toks in self._token_cache.items():
-            # Encode positive prompt tokens to feature vectors
+        cache = {} # Empty container for results
+        for feature_key, toks in self._token_cache.items(): # Loop over each aesthetic feature:
+            # Feed prompts to CLIP text encoder to get feature vectors
             p = self.model.encode_text(toks["pos"])
-            # Encode negative prompt tokens to feature vectors
             n = self.model.encode_text(toks["neg"])
-            # Normalize positive features to unit length
+
+            # Normalize features to unit length
             p = p / p.norm(dim=-1, keepdim=True)
-            # Normalize negative features to unit length
             n = n / n.norm(dim=-1, keepdim=True)
+
             # Store normalized features
             cache[feature_key] = {"pos": p, "neg": n}
         return cache
@@ -109,11 +90,9 @@ class ClipAestheticsScorer:
     @staticmethod
     def _top_k(scores: np.ndarray, prompts: list[str], k: int) -> list[dict]:
         """
-        Extract the top-k highest scoring prompts from a set of scores.
-        
-        Ranks prompts by their similarity scores and returns the top k prompts
-        in descending order of score. Handles cases where k > number of prompts
-        by capping k to the available number of prompts.
+        It finds the top-k best-matching prompts for an image and returns:
+            - the prompt text
+            - its similarity score
         
         Args:
             scores: Array of similarity scores, one per prompt.
@@ -134,12 +113,7 @@ class ClipAestheticsScorer:
     @torch.no_grad()
     def score(self, image_input) -> dict:
         """
-        Score an image across all aesthetic dimensions.
-        
-        Computes how well the image aligns with positive and negative prompts
-        for each aesthetic dimension. Returns average alignment scores, the delta
-        (difference between positive and negative), and the top-k best matching
-        prompts for each direction.
+        Compute the aesthetic scores
         
         Args:
             image_input: Image in any format supported by CLIPModel.encode_image().
@@ -152,30 +126,29 @@ class ClipAestheticsScorer:
                 - "top_3_positive": Top k positive prompts with scores
                 - "top_3_negative": Top k negative prompts with scores
         """
+
         # Encode the image into a normalized feature vector
         image_feat = self.clip_model.encode_image(image_input)
 
         results = {}
-        # Score the image for each aesthetic dimension
+        # Score the image for each aesthetic feature
         for feature_key in self.positive_prompts:
-            # Get pre-computed text embeddings for this dimension
+            # Load the pre-computed embeddings for the prompts
             p_text = self._text_feat_cache[feature_key]["pos"]
             n_text = self._text_feat_cache[feature_key]["neg"]
 
-            # Compute cosine similarity between image and positive prompts
-            # Matrix multiplication @ gives dot product, divide by norms = cosine similarity
+            # Produce a list of similarity scores between the image and prompts
             p_scores = (image_feat @ p_text.T).squeeze(0).detach().cpu().numpy()
-            # Compute cosine similarity between image and negative prompts
             n_scores = (image_feat @ n_text.T).squeeze(0).detach().cpu().numpy()
 
-            # Calculate average similarity to positive prompts
+            # Calculate average similarity to prompts
             avg_p = float(np.mean(p_scores))
-            # Calculate average similarity to negative prompts
             avg_n = float(np.mean(n_scores))
+
             # Delta score: how much better than average negative prompts
             delta = avg_p - avg_n
 
-            # Compile results for this dimension
+            # Compile results for this aesthetic feature
             results[feature_key] = {
                 "average_positive": avg_p,
                 "average_negative": avg_n,

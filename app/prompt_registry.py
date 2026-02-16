@@ -1,9 +1,4 @@
 # app/prompt_registry.py
-"""
-Prompt Registry for loading aesthetic evaluation prompts.
-
-"""
-
 from app.prompts import lighting_exposure as le
 from app.prompts import contrast as c
 from app.prompts import framing_perspective as fp
@@ -16,7 +11,7 @@ def get_prompt_sets():
     
     Returns:
         tuple: A pair of dictionaries (positive_prompts, negative_prompts).
-               Each maps aesthetic dimension names to lists of prompt strings.
+               Each maps aesthetic features names to lists of prompt strings.
     """
     # Dictionary of positive prompts describing high-quality aesthetic attributes
     positive_prompts = {
