@@ -3,6 +3,8 @@ import torch
 import clip
 import numpy as np
 
+from app.mapping import delta_to_score
+
 class ClipAestheticsScorer:
 
     def __init__(self, clip_model, positive_prompts: dict, negative_prompts: dict, top_k: int = 3):
@@ -147,9 +149,11 @@ class ClipAestheticsScorer:
 
             # Delta score: how much better than average negative prompts
             delta = avg_p - avg_n
+            score_0_10 = delta_to_score(delta, low_delta=-0.10, high_delta=0.10) # Placeholder constants 
 
             # Compile results for this aesthetic feature
             results[feature_key] = {
+                "score_0_10": score_0_10,
                 "average_positive": avg_p,
                 "average_negative": avg_n,
                 "delta": delta,
