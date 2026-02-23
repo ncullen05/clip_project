@@ -3,6 +3,7 @@ import torch
 import clip
 import numpy as np
 
+from app.mapping import calibration_ranges  # wherever you put it
 from app.mapping import delta_to_score
 
 class ClipAestheticsScorer:
@@ -149,7 +150,8 @@ class ClipAestheticsScorer:
 
             # Delta score: how much better than average negative prompts
             delta = avg_p - avg_n
-            score_0_10 = delta_to_score(delta, low_delta=-0.10, high_delta=0.10) # Placeholder constants 
+            rng = calibration_ranges[feature_key]
+            score_0_10 = delta_to_score(delta, low_delta=rng["low"], high_delta=rng["high"])
 
             # Compile results for this aesthetic feature
             results[feature_key] = {
