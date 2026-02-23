@@ -20,7 +20,7 @@ def main():
     scorer = ClipAestheticsScorer(clip_model, pos, neg, top_k=3)
 
     # Score a sample image - accepts file path, bytes, or PIL Image
-    results = scorer.score("images/alfie.jpg")
+    results = scorer.score("images/krfCLWjKBDY.jpg")
     # Display scoring results
     print(results)
 
