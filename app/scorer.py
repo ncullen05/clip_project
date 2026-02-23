@@ -155,12 +155,20 @@ class ClipAestheticsScorer:
 
             # Compile results for this aesthetic feature
             results[feature_key] = {
-                "score_0_10": score_0_10,
-                "average_positive": avg_p,
-                "average_negative": avg_n,
-                "delta": delta,
-                "top_3_positive": self._top_k(p_scores, self.positive_prompts[feature_key], self.top_k),
-                "top_3_negative": self._top_k(n_scores, self.negative_prompts[feature_key], self.top_k),
+                "score_0_10": float(score_0_10),
+                "avg_positive": float(avg_p),
+                "avg_negative": float(avg_n),
+                "delta": float(delta),
+                "top_positive": self._top_k(
+                    p_scores,
+                    self.positive_prompts[feature_key],
+                    self.top_k
+                ),
+                "top_negative": self._top_k(
+                    n_scores,
+                    self.negative_prompts[feature_key],
+                    self.top_k
+                ),
             }
 
         return results
