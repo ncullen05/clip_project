@@ -1,4 +1,5 @@
 # app/scorer.py
+from sympy import python
 import torch
 import clip
 import numpy as np
@@ -171,6 +172,7 @@ class ClipAestheticsScorer:
                 ),
             }
 
+        # Output conforms to SCHEMA.md (schema_version = 1.0)
         return {
             "schema_version": "1.0",
             "model": self.clip_model.model_name,
