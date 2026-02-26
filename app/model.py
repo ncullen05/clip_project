@@ -34,6 +34,8 @@ class CLIPModel:
         self.model, self.preprocess = clip.load(model_name, device=self.device)
         # Set the model to evaluation mode (disables dropout, batch norm updates, etc.)
         self.model.eval()
+        # Store the model name for results
+        self.model_name = model_name
 
     def _to_pil(self, image_input) -> Image.Image:
         """
