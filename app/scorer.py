@@ -171,4 +171,8 @@ class ClipAestheticsScorer:
                 ),
             }
 
-        return results
+        return {
+            "schema_version": "1.0",
+            "model": self.clip_model.model_name,
+            "features":results
+        }
