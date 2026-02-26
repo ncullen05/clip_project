@@ -1,10 +1,10 @@
 
 calibration_ranges = {
-    "lighting/exposure": {"low": -0.01332082524895668, "high": 0.00823259949684143},
-    "contrast": {"low": -0.01365853101015091, "high": 0.01057754531502721},
-    "framing/perspective": {"low": -0.006390059739351272, "high": 0.011978773772716519},
-    "visual focus": {"low": -0.004717288166284561, "high": 0.009776509553194045},
-    "visual complexity": {"low": -0.009907539188861846, "high": 0.010813049226999275},
+    "lighting/exposure": {"low": -0.028060731291770936, "high": 0.008780921995639795},
+    "contrast": {"low": -0.015044403076171876, "high": 0.004521393775939941},
+    "framing/perspective": {"low": -0.009384018927812576, "high": 0.0201389268040657},
+    "visual focus": {"low": -0.011019904911518098, "high": 0.0087275892496109},
+    "visual complexity": {"low": -0.011279307305812836, "high": 0.012673939019441601},
 }
 
 # Helper method ensuring the number stays within a fixed range
