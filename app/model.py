@@ -18,7 +18,7 @@ from PIL import Image
 
 class CLIPModel:
 
-    def __init__(self, model_name: str = "ViT-B/32", device: str | None = None):
+    def __init__(self, model_name: str = "ViT-B/16", device: str | None = None):
         """
         Initialize the CLIP model and preprocessing pipeline.
         
