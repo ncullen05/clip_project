@@ -1,5 +1,4 @@
 # app/scorer.py
-from sympy import python
 import torch
 import clip
 import numpy as np
