@@ -63,73 +63,19 @@ class SuggestResponse(BaseModel):
 
 
 class SuggestionsProvider(ABC):
-    """Provider-agnostic adapter for generating text-only interpretation."""
-
     @abstractmethod
     def feature_feedback(self, feature_key: str, evidence: FeatureEvidence) -> FeatureFeedback:
         raise NotImplementedError
 
 
-class RuleBasedSuggestionsProvider(SuggestionsProvider):
-    """Fallback provider that generates deterministic evidence-grounded text."""
-
-    def feature_feedback(self, feature_key: str, evidence: FeatureEvidence) -> FeatureFeedback:
-        positives = [p.prompt for p in evidence.top_positive[:2]]
-        negatives = [p.prompt for p in evidence.top_negative[:2]]
-
-        if positives:
-            positive_part = f"Positive evidence emphasizes {', '.join(positives)}"
-        else:
-            positive_part = "Positive evidence is limited"
-
-        if negatives:
-            negative_part = f"while negative evidence highlights {', '.join(negatives)}"
-        else:
-            negative_part = "and there are no strong negative prompt matches"
-
-        summary = f"For {feature_key}, {positive_part}, {negative_part}."
-
-        suggestions = self._build_suggestions(feature_key, positives, negatives)
-        print(f"[suggest][fallback] {feature_key} summary={summary}")
-        print(f"[suggest][fallback] {feature_key} suggestions={suggestions}")
-        return FeatureFeedback(summary=summary, suggestions=suggestions)
-
-    def _build_suggestions(
-        self,
-        feature_key: str,
-        positives: List[str],
-        negatives: List[str],
-    ) -> List[str]:
-        suggestions: List[str] = []
-
-        if positives:
-            suggestions.append(
-                f"Keep the elements that align with {feature_key} strengths, especially cues similar to: {positives[0]}."
-            )
-        else:
-            suggestions.append(
-                f"Introduce clearer visual cues for {feature_key} so positive descriptors appear more consistently."
-            )
-
-        if negatives:
-            suggestions.append(
-                f"Reduce traits associated with: {negatives[0]}, and replace them with cleaner alternatives."
-            )
-        else:
-            suggestions.append(
-                "Preserve the current balance and avoid adding conflicting visual elements."
-            )
-
-        suggestions.append(
-            f"Iterate on {feature_key} using small composition or styling adjustments, then re-measure to compare evidence shifts."
-        )
-
-        return suggestions[:3]
+class SuggestionProviderError(Exception):
+    def __init__(self, status_code: int, detail: str) -> None:
+        super().__init__(detail)
+        self.status_code = status_code
+        self.detail = detail
 
 
 class OpenAISuggestionsProvider(SuggestionsProvider):
-    """OpenAI-backed provider for text-only, evidence-based feature feedback."""
-
     def __init__(self, model: str = "gpt-4o-mini") -> None:
         self.model = model
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -183,20 +129,34 @@ class OpenAISuggestionsProvider(SuggestionsProvider):
                     }
                 },
             )
-            content = response.output_text
-            parsed = json.loads(content)
+            parsed = json.loads(response.output_text)
             summary = str(parsed.get("summary", "")).strip()
             suggestions = parsed.get("suggestions", [])
-            if not isinstance(suggestions, list):
-                suggestions = []
-            cleaned = [str(s).strip() for s in suggestions if str(s).strip()][:3]
-            while len(cleaned) < 3:
-                cleaned.append("Refine the visual choices and re-run measurement to compare evidence changes.")
+            if not summary or not isinstance(suggestions, list) or len(suggestions) != 3:
+                raise ValueError("Schema mismatch")
+            cleaned = [str(s).strip() for s in suggestions]
+            if any(not s for s in cleaned):
+                raise ValueError("Schema mismatch")
 
-            print(f"[suggest][openai] {feature_key} summary={summary}")
-            print(f"[suggest][openai] {feature_key} suggestions={cleaned}")
             return FeatureFeedback(summary=summary, suggestions=cleaned)
+        except json.JSONDecodeError as exc:
+            raise SuggestionProviderError(
+                status_code=502,
+                detail=f"feature={feature_key}; LLM returned invalid JSON",
+            ) from exc
+        except ValueError as exc:
+            raise SuggestionProviderError(
+                status_code=502,
+                detail=f"feature={feature_key}; LLM returned invalid JSON",
+            ) from exc
         except Exception as exc:
-            print(f"[suggest][openai][error] feature={feature_key} error={exc}")
-            fallback = RuleBasedSuggestionsProvider().feature_feedback(feature_key, evidence)
-            return fallback
+            status_code = getattr(exc, "status_code", None)
+            if isinstance(status_code, int) and 400 <= status_code <= 599:
+                raise SuggestionProviderError(
+                    status_code=502,
+                    detail=f"feature={feature_key}; OpenAI {status_code}",
+                ) from exc
+            raise SuggestionProviderError(
+                status_code=502,
+                detail=f"feature={feature_key}; OpenAI request failed",
+            ) from exc
