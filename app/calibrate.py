@@ -47,7 +47,7 @@ def main():
     for i, path in enumerate(paths, start=1):
         results = scorer.score(path)
         for feature_key in deltas_by_feature:
-            deltas_by_feature[feature_key].append(results[feature_key]["delta"])
+            deltas_by_feature[feature_key].append(results["features"][feature_key]["delta"])
         print(f"{i}/{len(paths)}", end="\r")
 
     print()  # newline after progress
