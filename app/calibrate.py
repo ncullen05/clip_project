@@ -70,7 +70,7 @@ def main():
             "std": float(arr.std()),
         }
 
-    # Print as JSON for easy copy-paste into schema.py
+    # Print as JSON for easy copy-paste into mapping.py
     print(json.dumps(calibration, indent=2))
 
 
