@@ -23,8 +23,8 @@ class CLIPModel:
         Initialize the CLIP model and preprocessing pipeline.
         
         Args:
-            model_name: Name of the CLIP model variant to load (default: ViT-B/32).
-                       Other options include ViT-L/14, ViT-B/16, etc.
+            model_name: Name of the CLIP model variant to load (default: ViT-B/16).
+                       Other options include ViT-L/14, ViT-B/32, etc.
             device: Device to load the model on ('cuda' or 'cpu'). If None,
                    automatically selects GPU if available, otherwise CPU.
         """
@@ -87,7 +87,7 @@ class CLIPModel:
             image_input: Image in any of the formats supported by _to_pil().
         
         Returns:
-            torch.Tensor: A normalized feature vector of shape (1, 512) for ViT-B/32. 
+            torch.Tensor: A normalized feature vector of shape (1, 512) for ViT-B/16. 
                          Values are in range [-1, 1] and have L2 norm = 1. 
         """
         # Convert input to PIL Image in RGB format using the helper method
